@@ -43,8 +43,7 @@ All validation and profiling results are stored as structured JSON reports.
 Schemas are defined using Pydantic models and enforced before data processing.
 The pipeline detects schema drifts such as missing or extra columns, automatically corrects minor deviations, logs discrepancies, and maintains schema versions for audit and traceability.
 
-**Bronze–Silver–Gold Architecture:
-**
+**Bronze–Silver–Gold Architecture:**
 The pipeline follows a layered data architecture:
 
 Bronze stores raw, unmodified data in CSV format for audit and reprocessing.
@@ -71,8 +70,7 @@ The pipeline tracks dataset origin, records each transformation step, builds a l
 A text-based visual lineage representation provides clear end-to-end traceability for governance and impact analysis.
 Python-based ingestion scripts handle multiple formats uniformly.
 
-**Key Highlights:
-**
+**Key Highlights:**
 Complete data engineering lifecycle implementation
 
 Production-style Airflow pipelines
