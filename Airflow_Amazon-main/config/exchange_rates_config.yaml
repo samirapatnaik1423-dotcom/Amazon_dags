@@ -1,0 +1,39 @@
+# config/exchange_rates_config.yaml
+
+source:
+  type: 'postgres'
+  table: 'input_exchange_rates'
+  csv_file: 'data/raw/dataset/Exchange_Rates.csv'
+
+destination:
+  type: 'postgres'
+  table: 'output_exchange_rates_cleaned'
+  mode: 'upsert'
+  merge_keys: ['date', 'currency']
+
+cleaning_rules:
+  date_columns:
+    date:
+      input_formats: ['%m/%d/%Y', '%d-%m-%Y', '%d/%m/%Y', '%Y-%m-%d']
+      output_format: '%d-%m-%Y'
+      handle_invalid: 'reject'
+  
+  type_conversions:
+    exchange_rate:
+      target_type: 'float'
+      handle_errors: 'reject'
+
+quality_checks:
+  - check: 'no_nulls'
+    column: 'currency'
+  
+  - check: 'positive_values'
+    column: 'exchange_rate'
+    min_value: 0
+
+columns_to_select:
+  - date
+  - currency
+  - exchange_rate
+
+columns_to_drop: []

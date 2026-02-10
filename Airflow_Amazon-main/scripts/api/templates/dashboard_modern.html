@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airflow ETL Dashboard - Modern UI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #2d3748;
+        }
+
+        .dashboard-container {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: #1a202c;
+            color: #fff;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .logo-section {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #2d3748;
+            margin-bottom: 30px;
+        }
+
+        .logo-section h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-section p {
+            font-size: 12px;
+            color: #a0aec0;
+            margin-top: 5px;
+        }
+
+        .service-launcher {
+            margin-bottom: 30px;
+        }
+
+        .service-launcher h3 {
+            font-size: 14px;
+            color: #a0aec0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .service-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .service-btn {
+            background: #2d3748;
+            border: 1px solid #4a5568;
+            padding: 15px 10px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .service-btn:hover {
+            background: #4a5568;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .service-btn i {
+            font-size: 24px;
+            color: #667eea;
+        }
+
+        .service-btn span {
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .service-btn .port {
+            font-size: 9px;
+            color: #718096;
+        }
+
+        .nav-menu {
+            margin-top: 20px;
+        }
+
+        .nav-item {
+            background: transparent;
+            border: none;
+            color: #a0aec0;
+            padding: 12px 15px;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-item:hover {
+            background: #2d3748;
+            color: #fff;
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+
+        .nav-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            background: #f7fafc;
+            overflow-y: auto;
+            padding: 30px;
+        }
+
+        .header-bar {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-bar h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .status-pill {
+            padding: 8px 16px;
+            background: #48bb78;
+            color: white;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-pill i {
+            font-size: 12px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-left: 4px solid #667eea;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h4 {
+            font-size: 14px;
+            color: #718096;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .stat-card .trend {
+            font-size: 12px;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .trend.up {
+            color: #48bb78;
+        }
+
+        .trend.down {
+            color: #f56565;
+        }
+
+        /* Tabs */
+        .tab-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .tab-header {
+            display: flex;
+            background: #f7fafc;
+            border-bottom: 2px solid #e2e8f0;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            padding: 15px 25px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #718096;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-btn:hover {
+            color: #667eea;
+            background: #edf2f7;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            background: white;
+        }
+
+        .tab-content {
+            padding: 30px;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Data Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .data-table thead {
+            background: #f7fafc;
+        }
+
+        .data-table th {
+            padding: 15px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .data-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+            color: #2d3748;
+        }
+
+        .data-table tbody tr:hover {
+            background: #f7fafc;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge.success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .badge.failed {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .badge.running {
+            background: #bee3f8;
+            color: #2c5282;
+        }
+
+        .badge.pending {
+            background: #feebc8;
+            color: #7c2d12;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .chart-container h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #1a202c;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+
+        /* Filter Bar */
+        .filter-bar {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 10px 15px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            color: #2d3748;
+            min-width: 150px;
+        }
+
+        .filter-group button {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .filter-group button:hover {
+            transform: scale(1.05);
+        }
+
+        /* Loading Spinner */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            display: none;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #718096;
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 200px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                padding: 15px;
+            }
+
+            .service-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header-bar {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+        }
+
+        /* Log Viewer */
+        .log-viewer {
+            background: #1a202c;
+            color: #a0aec0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 500px;
+            overflow-y: auto;
+            line-height: 1.6;
+        }
+
+        .log-line {
+            margin-bottom: 5px;
+        }
+
+        .log-line .timestamp {
+            color: #667eea;
+        }
+
+        .log-line .level-info {
+            color: #48bb78;
+        }
+
+        .log-line .level-error {
+            color: #f56565;
+        }
+
+        .log-line .level-warning {
+            color: #ed8936;
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e2e8f0;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-bottom: 30px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -25px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #667eea;
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px #667eea;
+        }
+
+        .timeline-item.success::before {
+            background: #48bb78;
+            box-shadow: 0 0 0 2px #48bb78;
+        }
+
+        .timeline-item.failed::before {
+            background: #f56565;
+            box-shadow: 0 0 0 2px #f56565;
+        }
+
+        .timeline-content {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .timeline-content h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .timeline-content p {
+            font-size: 12px;
+            color: #718096;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <h1><i class="fas fa-chart-line"></i> ETL Hub</h1>
+                <p>Airflow Pipeline Dashboard</p>
+            </div>
+
+            <div class="service-launcher">
+                <h3><i class="fas fa-rocket"></i> Quick Access</h3>
+                <div class="service-grid">
+                    <a href="http://localhost:8080" target="_blank" class="service-btn">
+                        <i class="fas fa-wind"></i>
+                        <span>Airflow</span>
+                        <span class="port">:8080</span>
+                    </a>
+                    <a href="http://localhost:3000" target="_blank" class="service-btn">
+                        <i class="fas fa-chart-area"></i>
+                        <span>Grafana</span>
+                        <span class="port">:3000</span>
+                    </a>
+                    <a href="http://localhost:5050" target="_blank" class="service-btn">
+                        <i class="fas fa-database"></i>
+                        <span>pgAdmin</span>
+                        <span class="port">:5050</span>
+                    </a>
+                    <a href="http://localhost:9090" target="_blank" class="service-btn">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Prometheus</span>
+                        <span class="port">:9090</span>
+                    </a>
+                    <a href="http://localhost:9093" target="_blank" class="service-btn">
+                        <i class="fas fa-bell"></i>
+                        <span>Alertmanager</span>
+                        <span class="port">:9093</span>
+                    </a>
+                    <a href="http://localhost:8000/docs" target="_blank" class="service-btn">
+                        <i class="fas fa-book"></i>
+                        <span>API Docs</span>
+                        <span class="port">:8000/docs</span>
+                    </a>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-item active" onclick="showView('overview')">
+                    <i class="fas fa-home"></i> Overview
+                </button>
+                <button class="nav-item" onclick="showView('dags')">
+                    <i class="fas fa-project-diagram"></i> DAG Management
+                </button>
+                <button class="nav-item" onclick="showView('monitoring')">
+                    <i class="fas fa-chart-line"></i> Monitoring
+                </button>
+                <button class="nav-item" onclick="showView('quality')">
+                    <i class="fas fa-shield-alt"></i> Data Quality
+                </button>
+                <button class="nav-item" onclick="showView('logs')">
+                    <i class="fas fa-file-code"></i> Logs
+                </button>
+                <button class="nav-item" onclick="showView('metadata')">
+                    <i class="fas fa-database"></i> Metadata
+                </button>
+                <button class="nav-item" onclick="showView('downloads')">
+                    <i class="fas fa-download"></i> Data Downloads
+                </button>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Overview Section -->
+            <div id="overview-view" class="view-section">
+                <div class="header-bar">
+                    <h2>Dashboard Overview</h2>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <button id="refreshBtn" onclick="loadOverviewData()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 5px;">
+                            <i class="fas fa-sync-alt"></i> Refresh Now
+                        </button>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; color: #2d3748;">
+                            <input type="checkbox" id="autoRefreshToggle" onchange="toggleAutoRefresh()" style="cursor: pointer;">
+                            <span>Auto-refresh (30s)</span>
+                        </label>
+                        <div class="status-pill">
+                            <i class="fas fa-circle"></i>
+                            <span>All Systems Operational</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <h4>Total DAGs</h4>
+                        <div class="value" id="totalDAGs">-</div>
+                        <div class="trend up">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>12 Active</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Success Rate</h4>
+                        <div class="value" id="successRate">-</div>
+                        <div class="trend up">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>+5% from last week</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Active Runs</h4>
+                        <div class="value" id="activeRuns">-</div>
+                        <div class="trend">
+                            <i class="fas fa-circle"></i>
+                            <span>Running now</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Data Quality</h4>
+                        <div class="value" id="dataQuality">-</div>
+                        <div class="trend up">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>Excellent</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3><i class="fas fa-chart-bar"></i> DAG Execution Timeline (Last 7 Days)</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="dagTimelineChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3><i class="fas fa-chart-pie"></i> Task Status Distribution</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="taskStatusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DAG Management Section -->
+            <div id="dags-view" class="view-section" style="display: none;">
+                <div class="header-bar">
+                    <h2>DAG Management</h2>
+                </div>
+
+                <div class="tab-container">
+                    <div class="tab-header">
+                        <button class="tab-btn active" onclick="switchTab('dag-list')">
+                            <i class="fas fa-list"></i> All DAGs
+                        </button>
+                        <button class="tab-btn" onclick="switchTab('dag-runs')">
+                            <i class="fas fa-history"></i> Recent Runs
+                        </button>
+                        <button class="tab-btn" onclick="switchTab('dag-tasks')">
+                            <i class="fas fa-tasks"></i> Task Status
+                        </button>
+                    </div>
+
+                    <div id="dag-list" class="tab-content active">
+                        <div class="filter-bar">
+                            <div class="filter-group">
+                                <label>Search DAG</label>
+                                <input type="text" id="dagSearchInput" placeholder="Search by name..." onkeyup="filterDAGs()">
+                            </div>
+                            <div class="filter-group">
+                                <button onclick="loadAllDAGs()">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div id="dagListContainer"></div>
+                    </div>
+
+                    <div id="dag-runs" class="tab-content">
+                        <div class="filter-bar">
+                            <div class="filter-group">
+                                <label>Select DAG</label>
+                                <select id="dagRunsSelect" onchange="loadDAGRuns()">
+                                    <option value="">Select a DAG...</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>State Filter</label>
+                                <select id="dagRunsStateFilter" onchange="loadDAGRuns()">
+                                    <option value="">All States</option>
+                                    <option value="success">Success</option>
+                                    <option value="failed">Failed</option>
+                                    <option value="running">Running</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <button onclick="loadDAGRuns()">
+                                    <i class="fas fa-search"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                        <div id="dagRunsContainer"></div>
+                    </div>
+
+                    <div id="dag-tasks" class="tab-content">
+                        <div class="filter-bar">
+                            <div class="filter-group">
+                                <label>Select DAG</label>
+                                <select id="dagTasksSelect" onchange="loadDAGTasks()">
+                                    <option value="">Select a DAG...</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Select Run</label>
+                                <select id="runTasksSelect">
+                                    <option value="">Select a run...</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <button onclick="loadTasksForRun()">
+                                    <i class="fas fa-search"></i> Load Tasks
+                                </button>
+                            </div>
+                        </div>
+                        <div id="dagTasksContainer"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monitoring Section -->
+            <div id="monitoring-view" class="view-section" style="display: none;">
+                <div class="header-bar">
+                    <h2>Pipeline Monitoring</h2>
+                </div>
+
+                <div class="chart-container">
+                    <h3><i class="fas fa-chart-line"></i> Pipeline Metrics Over Time</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="metricsChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3><i class="fas fa-database"></i> Table Statistics</h3>
+                    <div id="tableStatsContainer"></div>
+                </div>
+            </div>
+
+            <!-- Data Quality Section -->
+            <div id="quality-view" class="view-section" style="display: none;">
+                <div class="header-bar">
+                    <h2>Data Quality Dashboard</h2>
+                </div>
+
+                <div class="tab-container">
+                    <div class="tab-header">
+                        <button class="tab-btn active" onclick="switchTab('quality-scorecard')">
+                            <i class="fas fa-chart-bar"></i> Scorecard
+                        </button>
+                        <button class="tab-btn" onclick="switchTab('quality-validation')">
+                            <i class="fas fa-check-circle"></i> Validation
+                        </button>
+                        <button class="tab-btn" onclick="switchTab('quality-anomalies')">
+                            <i class="fas fa-exclamation-triangle"></i> Anomalies
+                        </button>
+                        <button class="tab-btn" onclick="switchTab('quality-profiles')">
+                            <i class="fas fa-chart-area"></i> Profiles
+                        </button>
+                    </div>
+
+                    <div id="quality-scorecard" class="tab-content active">
+                        <div class="filter-bar">
+                            <div class="filter-group">
+                                <label>Select Table</label>
+                                <select id="scorecardTableSelect">
+                                    <option value="all">All Tables</option>
+                                    <option value="customers">customers</option>
+                                    <option value="products">products</option>
+                                    <option value="sales">sales</option>
+                                    <option value="stores">stores</option>
+                                    <option value="exchange_rates">exchange_rates</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <button onclick="loadQualityScorecard()">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div id="qualityScorecardContainer"></div>
+                    </div>
+
+                    <div id="quality-validation" class="tab-content">
+                        <div class="filter-bar">
+                            <div class="filter-group">
+                                <label>Filter by Table</label>
+                                <select id="validationTableFilter">
+                                    <option value="">All Tables</option>
+                                    <option value="customers">customers</option>
+                                    <option value="products">products</option>
+                                    <option value="sales">sales</option>
+                                    <option value="stores">stores</option>
+                                    <option value="exchange_rates">exchange_rates</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>
+                                    <input type="checkbox" id="validationFailedOnly"> Failed Only
+                                </label>
+                            </div>
+                            <div class="filter-group">
+                                <button onclick="loadValidationResults()">
+                                    <i class="fas fa-search"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                        <div id="validationResultsContainer"></div>
+                    </div>
+
+                    <div id="quality-anomalies" class="tab-content">
+                        <div class="filter-bar">
+                            <div class="filter-group">
+                                <label>Filter by Table</label>
+                                <select id="anomaliesTableFilter">
+                                    <option value="">All Tables</option>
+                                    <option value="customers">customers</option>
+                                    <option value="products">products</option>
+                                    <option value="sales">sales</option>
+                                    <option value="stores">stores</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Limit</label>
+                                <select id="anomaliesLimit">
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                    <option value="200">200</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <button onclick="loadAnomalies()">
+                                    <i class="fas fa-search"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                        <div id="anomaliesContainer"></div>
+                    </div>
+
+                    <div id="quality-profiles" class="tab-content">
+                        <div class="filter-bar">
+                            <div class="filter-group">
+                                <label>Select Table</label>
+                                <select id="profilesTableSelect">
+                                    <option value="">All Tables</option>
+                                    <option value="customers">customers</option>
+                                    <option value="products">products</option>
+                                    <option value="sales">sales</option>
+                                    <option value="stores">stores</option>
+                                    <option value="exchange_rates">exchange_rates</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <button onclick="loadDataProfiles()">
+                                    <i class="fas fa-sync-alt"></i> Load
+                                </button>
+                            </div>
+                        </div>
+                        <div id="dataProfilesContainer"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Section -->
+            <div id="logs-view" class="view-section" style="display: none;">
+                <div class="header-bar">
+                    <h2>Log Viewer</h2>
+                </div>
+
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <label>Select DAG</label>
+                        <select id="logsDagSelect">
+                            <option value="">Select a DAG...</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Select Run</label>
+                        <select id="logsRunSelect">
+                            <option value="">Select a run...</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Select Task</label>
+                        <select id="logsTaskSelect">
+                            <option value="">Select a task...</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <button onclick="loadLogs()">
+                            <i class="fas fa-search"></i> Load Logs
+                        </button>
+                    </div>
+                </div>
+
+                <div class="log-viewer" id="logViewer">
+                    <div class="empty-state">
+                        <i class="fas fa-file-code"></i>
+                        <h3>No Logs Selected</h3>
+                        <p>Select a DAG, run, and task to view logs</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metadata Section -->
+            <div id="metadata-view" class="view-section" style="display: none;">
+                <div class="header-bar">
+                    <h2>Metadata Explorer</h2>
+                </div>
+
+                <div class="tab-container">
+                    <div class="tab-header">
+                        <button class="tab-btn active" onclick="switchTab('metadata-summary')">
+                            <i class="fas fa-info-circle"></i> Summary
+                        </button>
+                        <button class="tab-btn" onclick="switchTab('metadata-tables')">
+                            <i class="fas fa-table"></i> Tables
+                        </button>
+                        <button class="tab-btn" onclick="switchTab('metadata-metrics')">
+                            <i class="fas fa-chart-pie"></i> Metrics
+                        </button>
+                    </div>
+
+                    <div id="metadata-summary" class="tab-content active">
+                        <button class="filter-group" style="margin-bottom: 20px;" onclick="loadMetadataSummary()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                        <div id="metadataSummaryContainer"></div>
+                    </div>
+
+                    <div id="metadata-tables" class="tab-content">
+                        <button class="filter-group" style="margin-bottom: 20px;" onclick="loadTableStats()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                        <div id="metadataTablesContainer"></div>
+                    </div>
+
+                    <div id="metadata-metrics" class="tab-content">
+                        <button class="filter-group" style="margin-bottom: 20px;" onclick="loadMetrics()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                        <div id="metadataMetricsContainer"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Downloads Section -->
+            <div id="downloads-view" class="view-section" style="display: none;">
+                <div class="header-bar">
+                    <h2>Data Downloads</h2>
+                    <button onclick="loadDownloadsData()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 5px;">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+
+                <div class="section-card">
+                    <div class="card-header">
+                        <h3>Available Datasets</h3>
+                        <p style="color: #718096; font-size: 14px;">Download or preview datasets from different pipeline stages</p>
+                    </div>
+                    
+                    <div id="downloadsContainer">
+                        <div style="text-align: center; padding: 40px; color: #718096;">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 32px; margin-bottom: 15px;"></i>
+                            <p>Loading available files...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview Modal -->
+                <div id="previewModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; padding: 20px; overflow: auto;">
+                    <div style="max-width: 1400px; margin: 0 auto; background: white; border-radius: 12px; padding: 30px; position: relative;">
+                        <button onclick="closePreview()" style="position: absolute; top: 20px; right: 20px; background: #e53e3e; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 20px;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <h3 id="previewTitle" style="margin-bottom: 20px; color: #1a202c;">File Preview</h3>
+                        <div id="previewContent"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/dashboard.js"></script>
+</body>
+</html>

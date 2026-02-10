@@ -1,0 +1,6 @@
+Table,Input_Rows,Output_Rows,Duplicates_Removed,Rows_Cleaned,Dates_Standardized,Emails_Fixed,Missing_Values_Filled,Quality_Score,Validation_Status
+Products,2517,2517,0,0,0,0,0,100.0,PASS
+Customers,16029,15266,763,763,0,1340,2747,95.24,PASS
+Sales,62884,62884,0,0,116336,0,0,100.0,PASS
+Stores,67,67,0,0,0,0,0,100.0,PASS
+Exchange_Rates,3655,3655,0,0,3655,0,0,100.0,PASS

@@ -1,0 +1,18 @@
+logs/
+__pycache__/
+*.pyc
+.idea/
+data/raw/*.xlsx
+
+# Exclude data files (can be very large)
+data/bronze/
+data/silver/
+data/gold/
+data/staging/
+data/processed/
+data/file_watch_history.json
+data/raw/sample_products.json
+
+# Exclude all markdown files except README.md
+*.md
+!README.md

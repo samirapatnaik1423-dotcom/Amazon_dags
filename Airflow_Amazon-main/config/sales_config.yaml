@@ -1,0 +1,113 @@
+###########  T0017: Sales Transformation Rules Config #############
+# config/sales_config.yaml
+
+source:
+  type: 'postgres'
+  table: 'input_sales'
+  csv_file: 'data/raw/dataset/Sales.csv'
+
+destination:
+  - type: 'postgres'
+    table: 'output_sales_cleaned'
+    mode: 'upsert'
+    merge_keys: ['order_number']
+  
+  - type: 'postgres'
+    table: 'daily_sales_summary'
+    mode: 'bulk'
+
+lookups:
+  exchange_rates:
+    table: 'output_exchange_rates_cleaned'
+    key: 'currency'
+    value: 'exchange_rate'
+    date_column: 'date'
+
+cleaning_rules:
+  date_columns:
+    order_date:
+      input_formats: ['%m/%d/%Y', '%d-%m-%Y', '%d/%m/%Y', '%Y-%m-%d']
+      output_format: '%d-%m-%Y'  # DD-MM-YYYY
+      handle_invalid: 'reject'
+    
+    delivery_date:
+      input_formats: ['%m/%d/%Y', '%d-%m-%Y', '%d/%m/%Y', '%Y-%m-%d']
+      output_format: '%d-%m-%Y'
+      allow_null: true
+      handle_invalid: 'reject'
+
+transformations:
+  derived_columns:
+    - name: 'price_usd'
+      description: 'Convert price to USD using exchange rates'
+      formula: 'unit_cost_usd * exchange_rate'
+      lookup:
+        table: 'output_exchange_rates_cleaned'
+        on: 'currency_code'
+        select: 'exchange_rate'
+        date_match: 'order_date'
+        default_rate: 1.0
+    
+    - name: 'total_amount'
+      description: 'Calculate total order amount'
+      formula: 'price_usd * quantity'
+    
+    - name: 'delivery_status'
+      description: 'Determine delivery status based on dates'
+      conditions:
+        - if: 'delivery_date > order_date'
+          then: 'delivered'
+        - if: 'delivery_date is NULL and order_date < today()'
+          then: 'lost'
+        - else: 'pending'
+
+  aggregations:
+    daily_sales_summary:
+      groupby: ['order_date']
+      metrics:
+        total_sales:
+          column: 'total_amount'
+          function: 'sum'
+          output_name: 'total_sales'
+        
+        order_count:
+          column: 'order_number'
+          function: 'count'
+          output_name: 'order_count'
+        
+        avg_order_value:
+          column: 'total_amount'
+          function: 'mean'
+          output_name: 'avg_order_value'
+
+quality_checks:
+  - check: 'no_nulls'
+    column: 'order_number'
+    
+  - check: 'date_format'
+    column: 'order_date'
+    format: '%d-%m-%Y'
+  
+  - check: 'positive_values'
+    column: 'total_amount'
+    min_value: 0
+  
+  - check: 'valid_status'
+    column: 'delivery_status'
+    allowed_values: ['delivered', 'pending', 'lost']
+
+columns_to_select:
+  - order_number
+  - order_date
+  - delivery_date
+  - customer_key
+  - product_key
+  - quantity
+  - currency_code
+  - price_usd
+  - total_amount
+  - delivery_status
+
+columns_to_drop:
+  - line_item
+  - store_key

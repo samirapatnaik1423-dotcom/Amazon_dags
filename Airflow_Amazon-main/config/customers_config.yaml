@@ -1,0 +1,80 @@
+###########  T0012: Customers Cleaning Rules Config #############
+# config/customers_config.yaml
+
+source:
+  type: 'postgres'
+  table: 'input_customers'
+  csv_file: 'data/raw/dataset/Customers.csv'
+
+destination:
+  type: 'postgres'
+  table: 'output_customers_cleaned'
+  mode: 'upsert'  # insert, update, or upsert
+  merge_keys: ['customer_key']
+
+cleaning_rules:
+  duplicates:
+    enabled: true
+    subset: ['customer_key']
+    keep: 'first'
+    log_to_rejects: true
+  
+  date_columns:
+    birthday:
+      input_formats: ['%m/%d/%Y', '%d-%m-%Y', '%d/%m/%Y', '%Y-%m-%d']
+      output_format: '%d-%m-%Y'  # DD-MM-YYYY
+      handle_invalid: 'reject'
+      allow_null: false
+  
+  type_conversions:
+    age:
+      target_type: 'int'
+      handle_errors: 'reject'
+      allow_null: true
+  
+  missing_values:
+    age:
+      strategy: 'mean'
+      scope: 'global'  # calculate mean across all records
+    
+    email:
+      strategy: 'fill'
+      fill_value: 'noemail@company.com'
+  
+  validations:
+    email:
+      pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+      handle_invalid: 'replace'
+      replacement_value: 'invalid@company.com'
+
+quality_checks:
+  - check: 'no_duplicates'
+    column: 'customer_key'
+    threshold: 0  # Allow 0 duplicates
+  
+  - check: 'date_format'
+    column: 'birthday'
+    format: '%d-%m-%Y'
+  
+  - check: 'type_match'
+    column: 'age'
+    expected_type: 'int'
+  
+  - check: 'email_validity'
+    column: 'email'
+    pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+
+columns_to_select:
+  - customer_key
+  - name
+  - email
+  - birthday
+  - age
+  - city
+  - country
+
+columns_to_drop:
+  - gender
+  - state_code
+  - zip_code
+  - continent

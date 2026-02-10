@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airflow API Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #6a5bf2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .sidebar {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .main-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            min-height: 600px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+        
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-align: left;
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        button:hover {
+            background: #667eea;
+            color: white;
+            transform: translateX(5px);
+        }
+        
+        button.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            transition: border 0.3s ease;
+        }
+        
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .action-btn {
+            background: #667eea;
+            color: white;
+            padding: 12px 25px;
+            margin-top: 10px;
+            width: 100%;
+        }
+        
+        .action-btn:hover {
+            background: #5568d3;
+            transform: none;
+        }
+        
+        .response-container {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 400px;
+            position: relative;
+        }
+        
+        .response-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .status-badge {
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-waiting {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .welcome-message {
+            text-align: center;
+            padding: 100px 50px;
+            color: #999;
+        }
+        
+        .welcome-message h2 {
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+        
+        .filters {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .copy-btn {
+            padding: 8px 15px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .copy-btn:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Airflow API Dashboard</h1>
+            <p class="subtitle">Interactive testing interface for REST API endpoints</p>
+        </header>
+        
+        <div class="grid">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Health Check -->
+                <div class="section">
+                    <h3>🏥 System Health</h3>
+                    <div class="btn-group">
+                        <button onclick="checkHealth()">Check API Health</button>
+                    </div>
+                </div>
+                
+                <!-- DAG Operations -->
+                <div class="section">
+                    <h3>📊 DAG Operations</h3>
+                    <div class="btn-group">
+                        <button onclick="showSection('list-dags', this)">List All DAGs</button>
+                        <button onclick="showSection('dag-status', this)">Get DAG Status</button>
+                        <button onclick="showSection('dag-runs', this)">Get DAG Runs</button>
+                        <button onclick="showSection('specific-run', this)">Get Specific Run</button>
+                        <button onclick="showSection('run-tasks', this)">Get Run Tasks</button>
+                    </div>
+                </div>
+                
+                <!-- Metadata -->
+                <div class="section">
+                    <h3>📈 Metadata</h3>
+                    <div class="btn-group">
+                        <button onclick="getMetadataSummary()">Metadata Summary</button>
+                        <button onclick="getTableStats()">Table Statistics</button>
+                        <button onclick="getMetrics()">Pipeline Metrics</button>
+                    </div>
+                </div>
+                
+                <!-- Logs -->
+                <div class="section">
+                    <h3>📝 Logs</h3>
+                    <div class="btn-group">
+                        <button onclick="showSection('dag-logs', this)">List DAG Logs</button>
+                        <button onclick="showSection('run-logs', this)">Get Run Logs</button>
+                        <button onclick="showSection('task-logs', this)">Get Task Logs</button>
+                    </div>
+                </div>
+                
+                <!-- PHASE 1: Data Ingestion -->
+                <div class="section">
+                    <h3>📥 Data Ingestion</h3>
+                    <div class="btn-group">
+                        <button onclick="getIngestionLogs()">Ingestion Logs</button>
+                        <button onclick="getApiConnections()">API Connections</button>
+                        <button onclick="getFileHistory()">File Watch History</button>
+                    </div>
+                </div>
+                
+                <!-- PHASE 1: Quality & Validation -->
+                <div class="section">
+                    <h3>✅ Data Quality</h3>
+                    <div class="btn-group">
+                        <button onclick="getQualitySummary()">Quality Summary</button>
+                        <button onclick="showSection('quality-scorecard', this)">Quality Scorecard</button>
+                        <button onclick="showSection('validation-results', this)">Validation Results</button>
+                        <button onclick="showSection('anomalies', this)">Detected Anomalies</button>
+                        <button onclick="showSection('data-profiles', this)">Data Profiles</button>
+                        <button onclick="showSection('quality-checks', this)">Quality Checks</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="main-content">
+                <div id="welcome" class="welcome-message">
+                    <h2>👋 Welcome to the API Dashboard</h2>
+                    <p>Select an operation from the sidebar to get started</p>
+                </div>
+                
+                <!-- List DAGs Section -->
+                <div id="list-dags" class="hidden">
+                    <h2>📋 List All DAGs</h2>
+                    <p style="color: #666; margin-bottom: 20px;">View all available DAGs in the system</p>
+                    <button class="action-btn" onclick="listAllDAGs()">🔍 Fetch DAGs</button>
+                    <div id="list-dags-response" class="response-container" style="margin-top: 20px;"></div>
+                </div>
+                
+                <!-- DAG Status Section -->
+                <div id="dag-status" class="hidden">
+                    <h2>📊 Get DAG Status</h2>
+                    <p style="color: #666; margin-bottom: 20px;">View status and latest run information for a DAG</p>
+                    <div class="input-group">
+                        <label>Select DAG:</label>
+                        <select id="status-dag-select">
+                            <option value="">-- First, list DAGs --</option>
+                        </select>
+                    </div>
+                    <button class="action-btn" onclick="getDagStatus()">🔍 Get Status</button>
+                    <div id="dag-status-response" class="response-container" style="margin-top: 20px;"></div>
+                </div>
+                
+                <!-- DAG Runs Section -->
+                <div id="dag-runs" class="hidden">
+                    <h2>🔄 Get DAG Runs</h2>
+                    <p style="color: #666; margin-bottom: 20px;">View paginated list of DAG runs with filters</p>
+                    <div class="input-group">
+                        <label>Select DAG:</label>
+                        <select id="runs-dag-select">
+                            <option value="">-- First, list DAGs --</option>
+                        </select>
+                    </div>
+                    <div class="filters">
+                        <div class="input-group">
+                            <label>Filter by State:</label>
+                            <select id="runs-state-filter">
+                                <option value="">All States</option>
+                                <option value="success">Success</option>
+                                <option value="failed">Failed</option>
+                                <option value="running">Running</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Page Size:</label>
+                            <select id="runs-page-size">
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="50" selected>50</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="action-btn" onclick="getDagRuns()">🔍 Fetch Runs</button>
+                    <div id="dag-runs-response" class="response-container" style="margin-top: 20px;"></div>
+                </div>
+                
+                <!-- Specific Run Section -->
+                <div id="specific-run" class="hidden">
+                    <h2>🎯 Get Specific Run</h2>
+                    <p style="color: #666; margin-bottom: 20px;">View details of a specific DAG run</p>
+                    <div class="input-group">
+                        <label>Select DAG:</label>
+                        <select id="specific-dag-select">
+                            <option value="">-- First, list DAGs --</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Select Run:</label>
+                        <select id="specific-run-select">
+                            <option value="">-- First, select a DAG --</option>
+                        </select>
+                    </div>
+                    <button class="action-btn" onclick="getSpecificRun()">🔍 Fetch Run Details</button>
+                    <div id="specific-run-response" class="response-container" style="margin-top: 20px;"></div>
+                </div>
+                
+                <!-- Run Tasks Section -->
+                <div id="run-tasks" class="hidden">
+                    <h2>✅ Get Run Tasks</h2>
+                    <p style="color: #666; margin-bottom: 20px;">View all tasks for a specific run</p>
+                    <div class="input-group">
+                        <label>Select DAG:</label>
+                        <select id="tasks-dag-select">
+                            <option value="">-- First, list DAGs --</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Select Run:</label>
+                        <select id="tasks-run-select">
+                            <option value="">-- First, select a DAG --</option>
+                        </select>
+                    </div>
+                    <button class="action-btn" onclick="getRunTasks()">🔍 Fetch Tasks</button>
+                    <div id="run-tasks-response" class="response-container" style="margin-top: 20px;"></div>
+                </div>
+                
+                <!-- DAG Logs Section -->
+                <div id="dag-logs" class="hidden">
+                    <h2>📄 List DAG Logs</h2>
+                    <p style="color: #666; margin-bottom: 20px;">View available log files for a DAG</p>
+                    <div class="input-group">
+                        <label>Select DAG:</label>
+                        <select id="logs-dag-select">
+                            <option value="">-- First, list DAGs --</option>
+                        </select>
+                    </div>
+                    <button class="action-btn" onclick="getDagLogs()">🔍 List Logs</button>
+                    <div id="dag-logs-response" class="response-container" style="margin-top: 20px;"></div>
+                </div>
+                
+                <!-- Run Logs Section -->
+                <div id="run-logs" class="hidden">
+                    <h2>📃 Get Run Logs</h2>
+                    <p style="color: #666; margin-bottom: 20px;">View logs for a specific run</p>
+                    <div class="input-group">
+                        <label>Select DAG:</label>
+                        <select id="run-logs-dag-select">
+                            <option value="">-- First, list DAGs --</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Select Run:</label>
+                        <select id="run-logs-run-select">
+                            <option value="">-- First, select a DAG --</option>
+                        </select>
+                    </div>
+                    <button class="action-btn" onclick="getRunLogs()">🔍 Fetch Logs</button>
+                    <div id="run-logs-response" class="response-container" style="margin-top: 20px;"></div>
+                </div>
+                
+                <!-- Task Logs Section -->
+                <div id="task-logs" class="hidden">
+                    <h2>📋 Get Task Logs</h2>
+                    <p style="color: #666; margin-bottom: 20px;">View logs for a specific task</p>
+                    <div class="input-group">
+                        <label>Select DAG:</label>
+                        <select id="task-logs-dag-select">
+                            <option value="">-- First, list DAGs --</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Select Run:</label>
+                        <select id="task-logs-run-select">
+                            <option value="">-- First, select a DAG --</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Select Task:</label>
+                        <select id="task-logs-task-select">
+                            <option value="">-- First, select a run --</option>
+                        </select>
+                    </div>
+                    <button class="action-btn" onclick="getTaskLogs()">🔍 Fetch Task Logs</button>
+                    <div id="task-logs-response" class="response-container" style="margin-top: 20px;"></div>
+                </div>
+                
+                <!-- Quality Scorecard Section -->
+                <div id="quality-scorecard" class="hidden">
+                    <h2>📊 Quality Scorecard</h2>
+                    <p style="color: #666; margin-bottom: 20px;">View quality scores for all tables (Phase 1 - T0012)</p>
+                    <div class="filters">
+                        <div class="filter-group">
+                            <label for="scorecard-table">Table:</label>
+                            <select id="scorecard-table">
+                                <option value="all">All Tables</option>
+                                <option value="customers">customers</option>
+                                <option value="products">products</option>
+                                <option value="sales">sales</option>
+                                <option value="stores">stores</option>
+                                <option value="exchange_rates">exchange_rates</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="action-btn" onclick="getQualityScorecard()">🔍 View Scorecard</button>
+                    <div id="quality-scorecard-response" class="response-container" style="margin-top: 20px;"></div>
+                </div>
+                
+                <!-- Validation Results Section -->
+                <div id="validation-results" class="hidden">
+                    <h2>✅ Validation Results</h2>
+                    <p style="color: #666; margin-bottom: 20px;">Column-level validation results (T0008)</p>
+                    <div class="filters">
+                        <div class="input-group">
+                            <label>Filter by Table:</label>
+                            <select id="validation-table-filter">
+                                <option value="">All Tables</option>
+                                <option value="customers">Customers</option>
+                                <option value="products">Products</option>
+                                <option value="sales">Sales</option>
+                                <option value="stores">Stores</option>
+                                <option value="exchange_rates">Exchange Rates</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>
+                                <input type="checkbox" id="validation-failed-only"> Show only failed validations
+                            </label>
+                        </div>
+                    </div>
+                    <button class="action-btn" onclick="getValidationResults()">🔍 Fetch Results</button>
+                    <div id="validation-results-response" class="response-container" style="margin-top: 20px;"></div>
+                </div>
+                
+                <!-- Anomalies Section -->
+                <div id="anomalies" class="hidden">
+                    <h2>🚨 Detected Anomalies</h2>
+                    <p style="color: #666; margin-bottom: 20px;">Outliers detected using Z-score method (T0011)</p>
+                    <div class="filters">
+                        <div class="input-group">
+                            <label>Filter by Table:</label>
+                            <select id="anomalies-table-filter">
+                                <option value="">All Tables</option>
+                                <option value="customers">Customers</option>
+                                <option value="products">Products</option>
+                                <option value="sales">Sales</option>
+                                <option value="stores">Stores</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Limit Results:</label>
+                            <select id="anomalies-limit">
+                                <option value="50">50</option>
+                                <option value="100" selected>100</option>
+                                <option value="200">200</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="action-btn" onclick="getAnomalies()">🔍 Fetch Anomalies</button>
+                    <div id="anomalies-response" class="response-container" style="margin-top: 20px;"></div>
+                </div>
+                
+                <!-- Data Profiles Section -->
+                <div id="data-profiles" class="hidden">
+                    <h2>📈 Data Profiles</h2>
+                    <p style="color: #666; margin-bottom: 20px;">Statistical profiling information (T0009)</p>
+                    <div class="input-group">
+                        <label>Select Table:</label>
+                        <select id="profiles-table-select">
+                            <option value="">All Tables</option>
+                            <option value="customers">Customers</option>
+                            <option value="products">Products</option>
+                            <option value="sales">Sales</option>
+                            <option value="stores">Stores</option>
+                            <option value="exchange_rates">Exchange Rates</option>
+                        </select>
+                    </div>
+                    <button class="action-btn" onclick="getDataProfiles()">🔍 View Profiles</button>
+                    <div id="data-profiles-response" class="response-container" style="margin-top: 20px;"></div>
+                </div>
+                
+                <!-- Quality Checks Section -->
+                <div id="quality-checks" class="hidden">
+                    <h2>🎯 Quality Check Results</h2>
+                    <p style="color: #666; margin-bottom: 20px;">Quality rule execution results (T0010)</p>
+                    <div class="filters">
+                        <div class="input-group">
+                            <label>Filter by Table:</label>
+                            <select id="quality-checks-table-filter">
+                                <option value="">All Tables</option>
+                                <option value="customers">Customers</option>
+                                <option value="products">Products</option>
+                                <option value="sales">Sales</option>
+                                <option value="stores">Stores</option>
+                                <option value="exchange_rates">Exchange Rates</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>
+                                <input type="checkbox" id="quality-checks-failed-only"> Show only failed checks
+                            </label>
+                        </div>
+                    </div>
+                    <button class="action-btn" onclick="getQualityChecks()">🔍 Fetch Results</button>
+                    <div id="quality-checks-response" class="response-container" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let dagsCache = [];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            showSection('welcome');
+        });
+        
+        function clearResponses() {
+            document.querySelectorAll('.response-container').forEach(container => {
+                container.innerHTML = '';
+            });
+        }
+
+        function showSection(sectionId, btn) {
+            // Hide all sections (force display none to avoid stacking)
+            document.querySelectorAll('.main-content > div').forEach(div => {
+                div.classList.add('hidden');
+                div.style.display = 'none';
+            });
+            
+            // Show selected section
+            const selectedSection = document.getElementById(sectionId);
+            if (selectedSection) {
+                selectedSection.classList.remove('hidden');
+                selectedSection.style.display = 'block';
+            }
+            
+            // Update active button
+            document.querySelectorAll('.sidebar button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const activeButton = btn || (window.event ? window.event.target : null);
+            if (activeButton) {
+                activeButton.classList.add('active');
+            }
+
+            // Clear previous responses to avoid stacking
+            clearResponses();
+            
+            // Auto-load DAGs for selects if not already loaded
+            if (dagsCache.length === 0) {
+                loadDAGsForSelects();
+            }
+        }
+        
+        function displayResponse(elementId, response, status = 'waiting') {
+            const container = document.getElementById(elementId);
+            
+            if (status === 'loading') {
+                container.innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading...</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const statusClass = response.success ? 'status-success' : 'status-error';
+            const statusText = response.success ? `✓ ${response.status_code}` : '✗ Error';
+            
+            container.innerHTML = `
+                <div class="response-header">
+                    <span class="status-badge ${statusClass}">${statusText}</span>
+                    <button class="copy-btn" onclick="copyJSON('${elementId}')">📋 Copy JSON</button>
+                </div>
+                <pre id="${elementId}-json">${JSON.stringify(response.data || response, null, 2)}</pre>
+            `;
+        }
+        
+        function copyJSON(elementId) {
+            const jsonElement = document.getElementById(elementId + '-json');
+            navigator.clipboard.writeText(jsonElement.textContent);
+            alert('JSON copied to clipboard!');
+        }
+        
+        async function checkHealth() {
+            showSection('welcome');
+            displayResponse('welcome', {}, 'loading');
+            
+            const response = await fetch('/api/health');
+            const data = await response.json();
+            displayResponse('welcome', data);
+        }
+        
+        async function loadDAGsForSelects() {
+            const response = await fetch('/api/dags');
+            const data = await response.json();
+            
+            if (data.success && data.data) {
+                dagsCache = data.data;
+                const dagOptions = data.data.map(dag => 
+                    `<option value="${dag.dag_id}">${dag.dag_id}</option>`
+                ).join('');
+                
+                document.querySelectorAll('select[id$="-dag-select"]').forEach(select => {
+                    select.innerHTML = '<option value="">-- Select a DAG --</option>' + dagOptions;
+                });
+            }
+        }
+        
+        async function listAllDAGs() {
+            displayResponse('list-dags-response', {}, 'loading');
+            const response = await fetch('/api/dags');
+            const data = await response.json();
+            displayResponse('list-dags-response', data);
+            
+            if (data.success) {
+                dagsCache = data.data;
+                loadDAGsForSelects();
+            }
+        }
+        
+        async function getDagStatus() {
+            const dagId = document.getElementById('status-dag-select').value;
+            if (!dagId) {
+                alert('Please select a DAG');
+                return;
+            }
+            
+            displayResponse('dag-status-response', {}, 'loading');
+            const response = await fetch(`/api/dags/${dagId}/status`);
+            const data = await response.json();
+            displayResponse('dag-status-response', data);
+        }
+        
+        async function getDagRuns() {
+            const dagId = document.getElementById('runs-dag-select').value;
+            const state = document.getElementById('runs-state-filter').value;
+            const pageSize = document.getElementById('runs-page-size').value;
+            
+            if (!dagId) {
+                alert('Please select a DAG');
+                return;
+            }
+            
+            let url = `/api/dags/${dagId}/runs?page_size=${pageSize}`;
+            if (state) url += `&state=${state}`;
+            
+            displayResponse('dag-runs-response', {}, 'loading');
+            const response = await fetch(url);
+            const data = await response.json();
+            displayResponse('dag-runs-response', data);
+        }
+        
+        // Helper function to load runs for a DAG
+        async function loadRunsForDAG(dagId, targetSelectId) {
+            if (!dagId) return;
+            
+            try {
+                const response = await fetch(`/api/dags/${dagId}/runs?page_size=20`);
+                const data = await response.json();
+                
+                console.log('Runs response:', data); // Debug log
+                
+                const selectElement = document.getElementById(targetSelectId);
+                
+                // Check if we have runs in the response - Flask wraps it in data.data.runs
+                let items = [];
+                if (data.success && data.data) {
+                    items = data.data.runs || data.data.items || [];
+                }
+                
+                if (items.length > 0) {
+                    const runOptions = items.map(run => 
+                        `<option value="${run.run_id}">${run.run_id} (${run.state})</option>`
+                    ).join('');
+                    selectElement.innerHTML = '<option value="">-- Select a Run --</option>' + runOptions;
+                } else {
+                    selectElement.innerHTML = '<option value="">-- No runs found --</option>';
+                }
+            } catch (error) {
+                console.error('Error loading runs:', error);
+                document.getElementById(targetSelectId).innerHTML = '<option value="">-- Error loading runs --</option>';
+            }
+        }
+        
+        // Helper function to load tasks for a run
+        async function loadTasksForRun(dagId, runId, targetSelectId) {
+            if (!dagId || !runId) return;
+            
+            try {
+                const response = await fetch(`/api/dags/${dagId}/runs/${runId}/tasks`);
+                const data = await response.json();
+                
+                console.log('Tasks response:', data); // Debug log
+                
+                const selectElement = document.getElementById(targetSelectId);
+                
+                // Check if we have tasks in the response
+                let tasks = [];
+                if (data.success && data.data) {
+                    tasks = Array.isArray(data.data) ? data.data : [];
+                }
+                
+                if (tasks.length > 0) {
+                    const taskOptions = tasks.map(task => 
+                        `<option value="${task.task_id}">${task.task_id} (${task.state})</option>`
+                    ).join('');
+                    selectElement.innerHTML = '<option value="">-- Select a Task --</option>' + taskOptions;
+                } else {
+                    selectElement.innerHTML = '<option value="">-- No tasks found --</option>';
+                }
+            } catch (error) {
+                console.error('Error loading tasks:', error);
+                document.getElementById(targetSelectId).innerHTML = '<option value="">-- Error loading tasks --</option>';
+            }
+        }
+        
+        // Set up event listeners when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Specific run section
+            const specificDagSelect = document.getElementById('specific-dag-select');
+            if (specificDagSelect) {
+                specificDagSelect.addEventListener('change', function() {
+                    loadRunsForDAG(this.value, 'specific-run-select');
+                });
+            }
+            
+            // Tasks section
+            const tasksDagSelect = document.getElementById('tasks-dag-select');
+            if (tasksDagSelect) {
+                tasksDagSelect.addEventListener('change', function() {
+                    loadRunsForDAG(this.value, 'tasks-run-select');
+                });
+            }
+            
+            // Run logs section
+            const runLogsDagSelect = document.getElementById('run-logs-dag-select');
+            if (runLogsDagSelect) {
+                runLogsDagSelect.addEventListener('change', function() {
+                    loadRunsForDAG(this.value, 'run-logs-run-select');
+                });
+            }
+            
+            // Task logs section - DAG change
+            const taskLogsDagSelect = document.getElementById('task-logs-dag-select');
+            if (taskLogsDagSelect) {
+                taskLogsDagSelect.addEventListener('change', function() {
+                    loadRunsForDAG(this.value, 'task-logs-run-select');
+                    // Reset task select
+                    document.getElementById('task-logs-task-select').innerHTML = '<option value="">-- First, select a run --</option>';
+                });
+            }
+            
+            // Task logs section - Run change
+            const taskLogsRunSelect = document.getElementById('task-logs-run-select');
+            if (taskLogsRunSelect) {
+                taskLogsRunSelect.addEventListener('change', function() {
+                    const dagId = document.getElementById('task-logs-dag-select').value;
+                    loadTasksForRun(dagId, this.value, 'task-logs-task-select');
+                });
+            }
+        });
+        
+        async function getSpecificRun() {
+            const dagId = document.getElementById('specific-dag-select').value;
+            const runId = document.getElementById('specific-run-select').value;
+            
+            if (!dagId || !runId) {
+                alert('Please select both DAG and Run');
+                return;
+            }
+            
+            displayResponse('specific-run-response', {}, 'loading');
+            const response = await fetch(`/api/dags/${dagId}/runs/${runId}`);
+            const data = await response.json();
+            displayResponse('specific-run-response', data);
+        }
+        
+        async function getRunTasks() {
+            const dagId = document.getElementById('tasks-dag-select').value;
+            const runId = document.getElementById('tasks-run-select').value;
+            
+            if (!dagId || !runId) {
+                alert('Please select both DAG and Run');
+                return;
+            }
+            
+            displayResponse('run-tasks-response', {}, 'loading');
+            const response = await fetch(`/api/dags/${dagId}/runs/${runId}/tasks`);
+            const data = await response.json();
+            displayResponse('run-tasks-response', data);
+        }
+        
+        async function getMetadataSummary() {
+            showSection('welcome');
+            displayResponse('welcome', {}, 'loading');
+            const response = await fetch('/api/metadata/summary');
+            const data = await response.json();
+            displayResponse('welcome', data);
+        }
+        
+        async function getTableStats() {
+            showSection('welcome');
+            displayResponse('welcome', {}, 'loading');
+            const response = await fetch('/api/metadata/tables');
+            const data = await response.json();
+            displayResponse('welcome', data);
+        }
+        
+        async function getMetrics() {
+            showSection('welcome');
+            displayResponse('welcome', {}, 'loading');
+            const response = await fetch('/api/metadata/metrics');
+            const data = await response.json();
+            displayResponse('welcome', data);
+        }
+        
+        async function getDagLogs() {
+            const dagId = document.getElementById('logs-dag-select').value;
+            if (!dagId) {
+                alert('Please select a DAG');
+                return;
+            }
+            
+            displayResponse('dag-logs-response', {}, 'loading');
+            const response = await fetch(`/api/logs/${dagId}`);
+            const data = await response.json();
+            displayResponse('dag-logs-response', data);
+        }
+        
+        async function getRunLogs() {
+            const dagId = document.getElementById('run-logs-dag-select').value;
+            const runId = document.getElementById('run-logs-run-select').value;
+            
+            if (!dagId || !runId) {
+                alert('Please select both DAG and Run');
+                return;
+            }
+            
+            displayResponse('run-logs-response', {}, 'loading');
+            const response = await fetch(`/api/logs/${dagId}/${runId}`);
+            const data = await response.json();
+            displayResponse('run-logs-response', data);
+        }
+        
+        async function getTaskLogs() {
+            const dagId = document.getElementById('task-logs-dag-select').value;
+            const runId = document.getElementById('task-logs-run-select').value;
+            const taskId = document.getElementById('task-logs-task-select').value;
+            
+            if (!dagId || !runId || !taskId) {
+                alert('Please select DAG, Run, and Task');
+                return;
+            }
+            
+            displayResponse('task-logs-response', {}, 'loading');
+            const response = await fetch(`/api/logs/${dagId}/${runId}/${taskId}`);
+            const data = await response.json();
+            displayResponse('task-logs-response', data);
+        }
+
+        // ============================================================================
+        // Phase 1: Data Ingestion Functions (T0003, T0004, T0005)
+        // ============================================================================
+        
+        async function getIngestionLogs() {
+            try {
+                showSection('welcome');
+                displayResponse('welcome', {}, 'loading');
+                const response = await fetch('/api/ingestion/logs');
+                const data = await response.json();
+                displayResponse('welcome', data);
+            } catch (error) {
+                displayResponse('welcome', { error: error.message });
+            }
+        }
+
+        async function getApiConnections() {
+            try {
+                showSection('welcome');
+                displayResponse('welcome', {}, 'loading');
+                const response = await fetch('/api/ingestion/connections');
+                const data = await response.json();
+                displayResponse('welcome', data);
+            } catch (error) {
+                displayResponse('welcome', { error: error.message });
+            }
+        }
+
+        async function getFileHistory() {
+            try {
+                showSection('welcome');
+                displayResponse('welcome', {}, 'loading');
+                const response = await fetch('/api/ingestion/file-history');
+                const data = await response.json();
+                displayResponse('welcome', data);
+            } catch (error) {
+                displayResponse('welcome', { error: error.message });
+            }
+        }
+
+        // ============================================================================
+        // Phase 1: Data Quality Functions (T0008, T0009, T0010, T0011, T0012)
+        // ============================================================================
+        
+        async function getQualitySummary() {
+            try {
+                showSection('welcome');
+                displayResponse('welcome', {}, 'loading');
+                const response = await fetch('/api/quality/summary');
+                const data = await response.json();
+                displayResponse('welcome', data);
+            } catch (error) {
+                displayResponse('welcome', { error: error.message });
+            }
+        }
+
+        async function getQualityScorecard() {
+            try {
+                const table = document.getElementById('scorecard-table').value;
+                let url = '/api/quality/scorecard';
+                if (table && table !== 'all') {
+                    url += `/${table}`;
+                }
+                const response = await fetch(url);
+                const data = await response.json();
+                displayResponse('quality-scorecard-response', data);
+            } catch (error) {
+                displayResponse('quality-scorecard-response', { error: error.message });
+            }
+        }
+
+        async function getValidationResults() {
+            try {
+                const table = document.getElementById('validation-table').value;
+                const failedOnly = document.getElementById('validation-failed-only').checked;
+                
+                let url = '/api/quality/validation-results?';
+                const params = new URLSearchParams();
+                
+                if (table) params.append('table_name', table);
+                if (failedOnly) params.append('failed_only', 'true');
+                
+                url += params.toString();
+                const response = await fetch(url);
+                const data = await response.json();
+                displayResponse('validation-results-response', data);
+            } catch (error) {
+                displayResponse('validation-results-response', { error: error.message });
+            }
+        }
+
+        async function getAnomalies() {
+            try {
+                const table = document.getElementById('anomalies-table').value;
+                const column = document.getElementById('anomalies-column').value;
+                const limit = document.getElementById('anomalies-limit').value;
+                
+                let url = '/api/quality/anomalies?';
+                const params = new URLSearchParams();
+                
+                if (table) params.append('table_name', table);
+                if (column) params.append('column_name', column);
+                if (limit) params.append('limit', limit);
+                
+                url += params.toString();
+                const response = await fetch(url);
+                const data = await response.json();
+                displayResponse('anomalies-response', data);
+            } catch (error) {
+                displayResponse('anomalies-response', { error: error.message });
+            }
+        }
+
+        async function getDataProfiles() {
+            try {
+                const table = document.getElementById('profiles-table').value;
+                let url = '/api/quality/profiles';
+                if (table) {
+                    url += `?table_name=${table}`;
+                }
+                const response = await fetch(url);
+                const data = await response.json();
+                displayResponse('data-profiles-response', data);
+            } catch (error) {
+                displayResponse('data-profiles-response', { error: error.message });
+            }
+        }
+
+        async function getQualityChecks() {
+            try {
+                const table = document.getElementById('quality-checks-table').value;
+                const failedOnly = document.getElementById('quality-checks-failed-only').checked;
+                
+                let url = '/api/quality/quality-checks?';
+                const params = new URLSearchParams();
+                
+                if (table) params.append('table_name', table);
+                if (failedOnly) params.append('failed_only', 'true');
+                
+                url += params.toString();
+                const response = await fetch(url);
+                const data = await response.json();
+                displayResponse('quality-checks-response', data);
+            } catch (error) {
+                displayResponse('quality-checks-response', { error: error.message });
+            }
+        }
+
+    </script>
+</body>
+</html>

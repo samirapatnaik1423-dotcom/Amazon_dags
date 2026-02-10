@@ -1,0 +1,237 @@
+# ═══════════════════════════════════════════════════════════════════════
+# PHASE 1 - TEAM 2 SPRINT 2: Validation Rules Configuration
+# Tasks: T0008, T0010
+# ═══════════════════════════════════════════════════════════════════════
+
+# Column-Level Validation Rules for all tables
+# Used by DataValidator.validate_column_rules()
+
+validation_rules:
+  customers:
+    CustomerKey:
+      not_null: true
+      min_value: 1
+    
+    Gender:
+      allowed_values: ['M', 'F', 'Male', 'Female']
+    
+    Birthday:
+      not_null: false
+    
+    Age:
+      min_value: 0
+      max_value: 120
+    
+    Email:
+      regex: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    
+    City:
+      not_null: true
+  
+  products:
+    ProductKey:
+      not_null: true
+      min_value: 1
+    
+    Product:
+      not_null: true
+    
+    Brand:
+      not_null: true
+    
+    Color:
+      not_null: true
+    
+    Unit_Cost_USD:
+      min_value: 0
+    
+    Unit_Price_USD:
+      min_value: 0
+  
+  sales:
+    Order_Number:
+      not_null: true
+      regex: '^[A-Z0-9-]+$'
+    
+    CustomerKey:
+      not_null: true
+      min_value: 1
+    
+    StoreKey:
+      not_null: true
+      min_value: 1
+    
+    ProductKey:
+      not_null: true
+      min_value: 1
+    
+    Quantity:
+      not_null: true
+      min_value: 1
+    
+    Order_Date:
+      not_null: true
+    
+    Currency_Code:
+      allowed_values: ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD']
+  
+  stores:
+    StoreKey:
+      not_null: true
+      min_value: 1
+    
+    Country:
+      not_null: true
+    
+    State:
+      not_null: true
+    
+    Square_Meters:
+      min_value: 0
+    
+    Open_Date:
+      not_null: true
+  
+  exchange_rates:
+    Date:
+      not_null: true
+    
+    Currency:
+      not_null: true
+      allowed_values: ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD']
+    
+    Exchange:
+      not_null: true
+      min_value: 0
+
+# ═══════════════════════════════════════════════════════════════════════
+# Quality Rules Configuration (T0010)
+# Rules engine checks for data quality dimensions
+# ═══════════════════════════════════════════════════════════════════════
+
+quality_rules:
+  customers:
+    completeness:
+      - column: CustomerKey
+        threshold: 100  # % of non-null values required
+        severity: critical
+      
+      - column: Email
+        threshold: 95
+        severity: high
+      
+      - column: Age
+        threshold: 90
+        severity: medium
+    
+    accuracy:
+      - column: Email
+        rule_type: regex
+        pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        threshold: 98
+        severity: high
+      
+      - column: Age
+        rule_type: range
+        min_value: 0
+        max_value: 120
+        threshold: 100
+        severity: critical
+    
+    consistency:
+      - rule_type: logical
+        expression: "Age >= 18 OR Email IS NULL"
+        description: "Customers under 18 should not have email"
+        severity: low
+    
+    uniqueness:
+      - column: CustomerKey
+        threshold: 100
+        severity: critical
+  
+  sales:
+    completeness:
+      - column: Order_Number
+        threshold: 100
+        severity: critical
+      
+      - column: Quantity
+        threshold: 100
+        severity: critical
+    
+    accuracy:
+      - column: Quantity
+        rule_type: range
+        min_value: 1
+        max_value: 10000
+        threshold: 100
+        severity: high
+      
+      - column: Currency_Code
+        rule_type: allowed_values
+        values: ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD']
+        threshold: 100
+        severity: high
+    
+    consistency:
+      - rule_type: date_logic
+        expression: "Order_Date <= Delivery_Date"
+        description: "Order date must be before or equal to delivery date"
+        severity: high
+    
+    timeliness:
+      - column: Order_Date
+        rule_type: freshness
+        max_age_days: 365
+        description: "Orders should be within last year"
+        severity: medium
+
+# ═══════════════════════════════════════════════════════════════════════
+# Anomaly Detection Configuration (T0011)
+# ═══════════════════════════════════════════════════════════════════════
+
+anomaly_detection:
+  customers:
+    Age:
+      method: zscore
+      threshold: 3.0
+      description: "Detect unusual age values"
+  
+  sales:
+    Quantity:
+      method: zscore
+      threshold: 3.0
+      description: "Detect unusual order quantities"
+    
+    total_amount_usd:
+      method: zscore
+      threshold: 3.5
+      description: "Detect unusual transaction amounts"
+  
+  products:
+    Unit_Cost_USD:
+      method: zscore
+      threshold: 3.0
+      description: "Detect unusual product costs"
+    
+    Unit_Price_USD:
+      method: zscore
+      threshold: 3.0
+      description: "Detect unusual product prices"
+  
+  stores:
+    Square_Meters:
+      method: zscore
+      threshold: 2.5
+      description: "Detect unusual store sizes"
+
+# ═══════════════════════════════════════════════════════════════════════
+# Quality Scorecard Weights (T0012)
+# ═══════════════════════════════════════════════════════════════════════
+
+quality_scorecard_weights:
+  completeness: 0.35    # 35% weight
+  accuracy: 0.30        # 30% weight
+  consistency: 0.20     # 20% weight
+  uniqueness: 0.10      # 10% weight
+  timeliness: 0.05      # 5% weight

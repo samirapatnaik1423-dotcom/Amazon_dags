@@ -1,0 +1,269 @@
+version: "3.8"
+
+# Multi-Source ETL Pipeline with Airflow
+# Services: PostgreSQL, Redis, Airflow Webserver, Airflow Scheduler
+# Usage: docker-compose up -d
+
+services:
+
+  init_dirs:
+    image: alpine:3.18
+    entrypoint:
+      - sh
+      - -c
+      - |
+        set -e
+        echo "Initializer: creating project folders under /workspace"
+        mkdir -p /workspace/dags \
+                 /workspace/plugins \
+                 /workspace/logs \
+                 /workspace/scripts \
+                 /workspace/data_models \
+                 /workspace/config \
+                 /workspace/data/raw \
+                 /workspace/data/staging \
+                 /workspace/data/processed
+        # set ownership so Airflow UID in container owns files on host
+        chown -R ${AIRFLOW_UID}:${AIRFLOW_GID:-50000} /workspace
+        echo "Created and chowned:"
+        ls -la /workspace
+        exit 0
+    volumes:
+      - ../:/workspace:rw
+    networks:
+      - etl-network
+
+  postgres:
+    image: postgres:15
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-airflow}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB:-airflow}"
+    volumes:
+      - postgres-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-airflow} -d ${POSTGRES_DB:-airflow}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - etl-network
+
+  redis:
+    image: redis:7
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "no"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - etl-network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "admin@airflow.com"
+      PGADMIN_DEFAULT_PASSWORD: "admin"
+      PGADMIN_LISTEN_PORT: 80
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - etl-network
+
+  airflow-init:
+    image: apache/airflow:2.8.3
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      _PIP_ADDITIONAL_REQUIREMENTS: "openpyxl pandas sqlalchemy psycopg2-binary pyyaml"
+      AIRFLOW_UID: "${AIRFLOW_UID}"
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db init
+        airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com --no-input || true
+    volumes:
+      - ../dags:/opt/airflow/dags
+      - ../logs:/opt/airflow/logs
+      - ../plugins:/opt/airflow/plugins
+      - ../scripts:/opt/airflow/scripts
+      - ../data_models:/opt/airflow/data_models
+      - ../data:/opt/airflow/data
+      - ../config:/opt/airflow/config
+    networks:
+      - etl-network
+
+  webserver:
+    image: apache/airflow:2.8.3
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
+      AIRFLOW__WEBSERVER__WORKERS: "2"
+      AIRFLOW__WEBSERVER__RBAC: "True"
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      # Email/SMTP Configuration
+      AIRFLOW__SMTP__SMTP_HOST: "${SMTP_HOST:-smtp.gmail.com}"
+      AIRFLOW__SMTP__SMTP_PORT: "${SMTP_PORT:-587}"
+      AIRFLOW__SMTP__SMTP_USER: "${SMTP_USER}"
+      AIRFLOW__SMTP__SMTP_PASSWORD: "${SMTP_PASSWORD}"
+      AIRFLOW__SMTP__SMTP_MAIL_FROM: "${SMTP_MAIL_FROM}"
+      AIRFLOW__SMTP__SMTP_STARTTLS: "True"
+      AIRFLOW__SMTP__SMTP_SSL: "False"
+      # Timezone
+      AIRFLOW__CORE__DEFAULT_TIMEZONE: "Asia/Kolkata"
+      _PIP_ADDITIONAL_REQUIREMENTS: "openpyxl pandas sqlalchemy psycopg2-binary pyyaml"
+      AIRFLOW_UID: "${AIRFLOW_UID}"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ../dags:/opt/airflow/dags
+      - ../logs:/opt/airflow/logs
+      - ../plugins:/opt/airflow/plugins
+      - ../scripts:/opt/airflow/scripts
+      - ../data_models:/opt/airflow/data_models
+      - ../data:/opt/airflow/data
+      - ../config:/opt/airflow/config
+    ports:
+      - "8080:8080"
+    command: airflow webserver
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - etl-network
+
+  scheduler:
+    image: apache/airflow:2.8.3
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      # Email/SMTP Configuration
+      AIRFLOW__SMTP__SMTP_HOST: "${SMTP_HOST:-smtp.gmail.com}"
+      AIRFLOW__SMTP__SMTP_PORT: "${SMTP_PORT:-587}"
+      AIRFLOW__SMTP__SMTP_USER: "${SMTP_USER}"
+      AIRFLOW__SMTP__SMTP_PASSWORD: "${SMTP_PASSWORD}"
+      AIRFLOW__SMTP__SMTP_MAIL_FROM: "${SMTP_MAIL_FROM}"
+      AIRFLOW__SMTP__SMTP_STARTTLS: "True"
+      AIRFLOW__SMTP__SMTP_SSL: "False"
+      # Timezone
+      AIRFLOW__CORE__DEFAULT_TIMEZONE: "Asia/Kolkata"
+      _PIP_ADDITIONAL_REQUIREMENTS: "openpyxl pandas sqlalchemy psycopg2-binary pyyaml"
+      AIRFLOW_UID: "${AIRFLOW_UID}"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ../dags:/opt/airflow/dags
+      - ../logs:/opt/airflow/logs
+      - ../plugins:/opt/airflow/plugins
+      - ../scripts:/opt/airflow/scripts
+      - ../data_models:/opt/airflow/data_models
+      - ../data:/opt/airflow/data
+      - ../config:/opt/airflow/config
+    command: scheduler
+    networks:
+      - etl-network
+
+  # Team 1 - Sprint 7: REST API Service (T0033-T0037)
+  api:
+    image: python:3.11-slim
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Database Configuration
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: "${POSTGRES_DB:-airflow}"
+      POSTGRES_USER: "${POSTGRES_USER:-airflow}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      ETL_SCHEMA: "etl_output"
+      # API Configuration
+      API_HOST: "0.0.0.0"
+      API_PORT: "8000"
+      API_DEBUG: "false"
+      API_KEY_ENABLED: "${API_KEY_ENABLED:-true}"
+      API_KEYS: "${API_KEYS:-dev-key-12345,test-key-67890}"
+      # Pagination
+      DEFAULT_PAGE_SIZE: "50"
+      MAX_PAGE_SIZE: "500"
+      # Logs
+      AIRFLOW_LOGS: "/opt/airflow/logs"
+      MAX_LOG_SIZE: "100000"
+      # CORS
+      CORS_ORIGINS: "http://localhost:3000,http://localhost:8080,*"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ../scripts:/app/scripts:ro
+      - ../logs:/opt/airflow/logs:ro
+    working_dir: /app
+    ports:
+      - "8000:8000"
+    command:
+      - /bin/bash
+      - -c
+      - |
+        echo "Installing API dependencies..."
+        pip install --no-cache-dir \
+          fastapi==0.109.0 \
+          uvicorn[standard]==0.27.0 \
+          sqlalchemy==2.0.25 \
+          psycopg2-binary \
+          python-multipart==0.0.6 \
+          httpx==0.26.0
+        echo "Starting FastAPI server..."
+        uvicorn scripts.api.main:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - etl-network
+    restart: unless-stopped
+
+volumes:
+  postgres-db:
+    driver: local
+  redis-data:
+    driver: local
+  pgadmin-data:
+    driver: local
+
+networks:
+  etl-network:
+    driver: bridge

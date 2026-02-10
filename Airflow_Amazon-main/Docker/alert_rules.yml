@@ -1,0 +1,31 @@
+groups:
+  - name: airflow_api_alerts
+    rules:
+      - alert: AirflowAPIHighLatency
+        expr: histogram_quantile(0.95, sum by (le) (rate(api_request_latency_seconds_bucket[5m]))) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency"
+          description: "P95 latency is > 1s for 5 minutes."
+
+      - alert: AirflowAPIDown
+        expr: up{job="airflow_api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Airflow API down"
+          description: "The FastAPI service is not reachable."
+
+  - name: api_health_alerts
+    rules:
+      - alert: APIHealthCheckFailed
+        expr: probe_success{job="api_health"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API health check failed"
+          description: "Health probe failed for {{ $labels.instance }}."

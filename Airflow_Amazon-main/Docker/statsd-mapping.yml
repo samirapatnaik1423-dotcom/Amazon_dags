@@ -1,0 +1,38 @@
+mappings:
+  - match: "airflow.dag.*.duration"
+    name: "airflow_dag_duration_seconds"
+    labels:
+      dag_id: "$1"
+
+  - match: "airflow.dag.*.run_count"
+    name: "airflow_dag_run_total"
+    labels:
+      dag_id: "$1"
+
+  - match: "airflow.dag.*.success_count"
+    name: "airflow_dag_success_total"
+    labels:
+      dag_id: "$1"
+
+  - match: "airflow.dag.*.failed_count"
+    name: "airflow_dag_failed_total"
+    labels:
+      dag_id: "$1"
+
+  - match: "airflow.task.*.*.duration"
+    name: "airflow_task_duration_seconds"
+    labels:
+      dag_id: "$1"
+      task_id: "$2"
+
+  - match: "airflow.task.*.*.success_count"
+    name: "airflow_task_success_total"
+    labels:
+      dag_id: "$1"
+      task_id: "$2"
+
+  - match: "airflow.task.*.*.failed_count"
+    name: "airflow_task_failed_total"
+    labels:
+      dag_id: "$1"
+      task_id: "$2"

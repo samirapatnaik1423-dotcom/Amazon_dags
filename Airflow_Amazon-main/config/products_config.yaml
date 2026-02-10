@@ -1,0 +1,57 @@
+# config/products_config.yaml
+
+source:
+  type: 'postgres'
+  table: 'input_products'
+  csv_file: 'data/raw/dataset/Products.csv'
+
+destination:
+  type: 'postgres'
+  table: 'output_products_cleaned'
+  mode: 'upsert'
+  merge_keys: ['product_key']
+
+cleaning_rules:
+  duplicates:
+    enabled: true
+    subset: ['product_key']
+    keep: 'first'
+  
+  type_conversions:
+    unit_cost_usd:
+      target_type: 'float'
+      handle_errors: 'reject'
+    
+    unit_price_usd:
+      target_type: 'float'
+      handle_errors: 'reject'
+  
+  missing_values:
+    brand:
+      strategy: 'fill'
+      fill_value: 'Unknown'
+
+quality_checks:
+  - check: 'no_nulls'
+    column: 'product_key'
+  
+  - check: 'no_nulls'
+    column: 'product_name'
+  
+  - check: 'positive_values'
+    column: 'unit_price_usd'
+    min_value: 0
+
+columns_to_select:
+  - product_key
+  - product_name
+  - brand
+  - category
+  - unit_cost_usd
+  - unit_price_usd
+
+columns_to_drop:
+  - color
+  - subcategory_key
+  - subcategory
+  - category_key

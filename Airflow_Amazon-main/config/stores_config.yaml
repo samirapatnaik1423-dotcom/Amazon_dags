@@ -1,0 +1,30 @@
+# config/stores_config.yaml
+
+source:
+  type: 'postgres'
+  table: 'input_stores'
+  csv_file: 'data/raw/dataset/Stores.csv'
+
+destination:
+  type: 'postgres'
+  table: 'output_stores_cleaned'
+  mode: 'upsert'
+  merge_keys: ['store_key']
+
+cleaning_rules:
+  duplicates:
+    enabled: true
+    subset: ['store_key']
+    keep: 'first'
+
+quality_checks:
+  - check: 'no_nulls'
+    column: 'store_key'
+
+columns_to_select:
+  - store_key
+  - store_name
+  - city
+  - country
+
+columns_to_drop: []

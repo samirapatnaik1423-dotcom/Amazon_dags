@@ -1,0 +1,88 @@
+{
+  "uid": "airflow-master-orchestrator",
+  "title": "Airflow Master Orchestrator",
+  "tags": ["airflow", "dag", "orchestrator"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Master DAG Processing Count",
+      "gridPos": {"x": 0, "y": 0, "w": 8, "h": 4},
+      "targets": [
+        {
+          "expr": "airflow_dag_processing_last_duration_etl_master_orchestrator_count",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Master DAG Processing p50 (s)",
+      "gridPos": {"x": 8, "y": 0, "w": 8, "h": 4},
+      "targets": [
+        {
+          "expr": "airflow_dag_processing_last_duration_etl_master_orchestrator{quantile=\"0.5\"}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Master DAG Processing p90 (s)",
+      "gridPos": {"x": 16, "y": 0, "w": 8, "h": 4},
+      "targets": [
+        {
+          "expr": "airflow_dag_processing_last_duration_etl_master_orchestrator{quantile=\"0.9\"}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Master DAG Processing Duration (p50)",
+      "gridPos": {"x": 0, "y": 4, "w": 24, "h": 8},
+      "targets": [
+        {
+          "expr": "airflow_dag_processing_last_duration_etl_master_orchestrator{quantile=\"0.5\"}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Task Instances Created (Total)",
+      "gridPos": {"x": 0, "y": 12, "w": 24, "h": 8},
+      "targets": [
+        {
+          "expr": "airflow_task_instance_created",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "logs",
+      "title": "Master Orchestrator Logs",
+      "gridPos": {"x": 0, "y": 20, "w": 24, "h": 12},
+      "targets": [
+        {
+          "expr": "{dag_id=\"etl_master_orchestrator\"} |= ``",
+          "refId": "A"
+        }
+      ],
+      "datasource": "Loki",
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      }
+    }
+  ]
+}

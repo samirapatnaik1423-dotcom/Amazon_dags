@@ -1,0 +1,165 @@
+################################################################################
+# UNIFIED TRANSFORMATION CONFIGURATION
+# Phase 3: Aggregations, Normalization, Features, DateTime
+#
+# Usage:
+#   orchestrator = TransformationOrchestrator('config/transformation_config.yaml')
+#   results = orchestrator.run('amazon', 'data/raw/amazon.csv')
+################################################################################
+
+# ============================================================================
+# AMAZON DATA TRANSFORMATION
+# ============================================================================
+sources:
+  amazon:
+    # ========================================================================
+    # AGGREGATIONS: Groupby operations
+    # ========================================================================
+    aggregations:
+      enabled: true
+      
+      # Column(s) to group by (string or list)
+      group_by: "CustomerKey"
+      
+      # Aggregation specification: {column: function or [functions]}
+      # Available functions: sum, count, min, max, mean, median
+      agg_spec:
+        Quantity:
+          - sum        # Total quantity ordered
+          - count      # Number of orders
+          - mean       # Average quantity per order
+        Price:
+          - min        # Minimum price paid
+          - max        # Maximum price paid
+          - mean       # Average price
+        "Order Date":
+          - count      # Order frequency
+      
+      # Optional: Process in batches to optimize memory
+      # Comment out or set to null to process all at once
+      batch_size: null  # e.g., 10000 for batches of 10k rows
+    
+    # ========================================================================
+    # NORMALIZATION: Z-score standardization
+    # ========================================================================
+    normalization:
+      enabled: true
+      
+      # Columns to normalize (null = auto-detect all numeric)
+      columns: null
+      
+      # Columns to exclude from normalization
+      exclude_columns:
+        - "CustomerKey"
+        - "ProductKey"
+      
+      # Batch processing for memory optimization
+      batch_size: null
+    
+    # ========================================================================
+    # FEATURE ENGINEERING: Create derived features
+    # ========================================================================
+    features:
+      enabled: false  # Disabled for aggregated data (use on raw sales)
+      
+      # List of features to create
+      # Available: customer_features, sales_features, product_features
+      features:
+        - "customer_lifetime_value"
+        - "purchase_frequency"
+        - "customer_recency"
+    
+    # ========================================================================
+    # DATE/TIME TRANSFORMATIONS: Extract date parts and intervals
+    # ========================================================================
+    datetime:
+      enabled: true
+      
+      # Extract date parts from these columns
+      # Creates: year, month, day, day_of_week, quarter
+      extract_date_parts:
+        - "Order Date"
+      
+      # Calculate intervals between date columns
+      # Each entry: {start_col, end_col, output_col}
+      intervals:
+        - start_col: "Order Date"
+          end_col: "Delivery Date"
+          output_col: "days_order_to_delivery"
+
+
+# ============================================================================
+# CUSTOMER DATA TRANSFORMATION
+# ============================================================================
+  customers:
+    aggregations:
+      enabled: false
+      group_by: "CustomerKey"
+      agg_spec: {}
+      batch_size: null
+    
+    normalization:
+      enabled: false
+      columns: null
+      exclude_columns: ["CustomerKey"]
+      batch_size: null
+    
+    features:
+      enabled: true
+      features:
+        - "customer_lifetime_value"
+        - "purchase_frequency"
+        - "customer_recency"
+        - "customer_tenure"
+        - "is_active"
+    
+    datetime:
+      enabled: false
+      extract_date_parts: []
+      intervals: []
+
+
+################################################################################
+# OUTPUT CONFIGURATION
+################################################################################
+
+output:
+  # CSV output directory
+  csv_dir: "data/transformed"
+  
+  # Database configuration
+  database:
+    type: "sqlite"  # sqlite or postgresql
+    path: "data/airflow.db"  # For SQLite
+    # host: "localhost"       # For PostgreSQL
+    # port: 5432
+    # user: "admin"
+    # password: "***"
+    # database: "airflow_db"
+
+
+################################################################################
+# FEATURE NOTES
+################################################################################
+
+# AGGREGATIONS:
+#   - group_by: Single column string or list of columns for multi-level grouping
+#   - agg_spec: Flexible mapping of columns to single or multiple aggregation functions
+#   - batch_size: Process large datasets in chunks to manage memory
+
+# NORMALIZATION:
+#   - Z-score: (x - mean) / std (results in mean=0, std=1)
+#   - Auto-detect: Set columns: null to auto-detect all numeric columns
+#   - Exclude: Specify columns to skip (e.g., IDs, keys)
+
+# FEATURES:
+#   - Customer: lifetime_value, purchase_frequency, avg_order_value, recency, tenure, is_active
+#   - Sales: order_size_category, is_bulk_order, revenue (if price available)
+#   - Product: units_sold, orders_count, avg_quantity, popularity_score, sales_rank, is_top_seller
+
+# DATETIME:
+#   - Date parts: Automatically creates year, month, day, day_of_week, quarter
+#   - Intervals: Calculate days between any two date columns
+#   - Tenure: Calculated as days since first purchase (handled by feature engine)
+
+################################################################################

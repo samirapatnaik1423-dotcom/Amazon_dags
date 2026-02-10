@@ -1,0 +1,5 @@
+Delivery_Status,Order_Count,Total_Value_USD,Customers_Affected,Pct_Of_Total_Orders
+Delivered,53452,47227594.62,11619,85.0
+Delivering Soon,199,178145.31,198,0.32
+Lost,4843,4563720.25,3777,7.7
+To Be Shipped,4390,3786019.41,3493,6.98

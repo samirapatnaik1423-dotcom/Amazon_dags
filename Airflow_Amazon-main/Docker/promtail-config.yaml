@@ -1,0 +1,68 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # Airflow Scheduler Logs
+  - job_name: airflow-scheduler
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: airflow-scheduler
+          component: scheduler
+          __path__: /opt/airflow/logs/scheduler/**/*.log
+
+  # Airflow DAG Processor Logs
+  - job_name: airflow-dag-processor
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: airflow-dag-processor
+          component: dag-processor
+          __path__: /opt/airflow/logs/dag_processor_manager/*.log
+
+  # Airflow DAG Run Logs (all DAGs)
+  - job_name: airflow-dags
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: airflow-dags
+          component: dag-execution
+          __path__: /opt/airflow/logs/dag_id=*/**/*.log
+    pipeline_stages:
+      # Extract DAG ID from path
+      - regex:
+          expression: '\/dag_id=(?P<dag_id>[^\/]+)\/'
+      - labels:
+          dag_id:
+      # Extract run ID from path
+      - regex:
+          expression: '\/run_id=(?P<run_id>[^\/]+)\/'
+      - labels:
+          run_id:
+      # Extract task ID from path
+      - regex:
+          expression: '\/run_id=[^\/]+\/(?P<task_id>[^\/]+)\/'
+      - labels:
+          task_id:
+
+  # Master Orchestrator Logs (high priority)
+  - job_name: airflow-master-orchestrator
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: airflow-master
+          component: orchestrator
+          dag_id: etl_master_orchestrator
+          priority: high
+          __path__: /opt/airflow/logs/dag_id=etl_master_orchestrator/**/*.log

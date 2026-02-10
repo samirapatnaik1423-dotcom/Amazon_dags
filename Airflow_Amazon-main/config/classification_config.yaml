@@ -1,0 +1,92 @@
+tables:
+  customers:
+    columns:
+      CustomerKey:
+        classification: internal
+        tags: [identifier]
+      Name:
+        classification: pii
+        tags: [name]
+      Email:
+        classification: pii
+        tags: [email]
+      Birthday:
+        classification: pii
+        tags: [dob]
+      Age:
+        classification: internal
+        tags: [demographic]
+      City:
+        classification: internal
+        tags: [location]
+      Country:
+        classification: internal
+        tags: [location]
+      loyalty_category:
+        classification: internal
+        tags: [segment]
+  sales:
+    columns:
+      Order Number:
+        classification: internal
+        tags: [identifier]
+      CustomerKey:
+        classification: internal
+        tags: [foreign_key]
+      ProductKey:
+        classification: internal
+        tags: [foreign_key]
+      StoreKey:
+        classification: internal
+        tags: [foreign_key]
+      Quantity:
+        classification: internal
+        tags: [metric]
+      Total_Amount_USD:
+        classification: confidential
+        tags: [financial]
+      Delivery_Status:
+        classification: internal
+        tags: [status]
+      Order Date:
+        classification: internal
+        tags: [date]
+      Delivery Date:
+        classification: internal
+        tags: [date]
+  products:
+    columns:
+      ProductKey:
+        classification: internal
+        tags: [identifier]
+      Product Name:
+        classification: internal
+        tags: [product]
+      Category:
+        classification: internal
+        tags: [category]
+      Unit Price USD:
+        classification: confidential
+        tags: [financial]
+  stores:
+    columns:
+      StoreKey:
+        classification: internal
+        tags: [identifier]
+      Country:
+        classification: internal
+        tags: [location]
+      State:
+        classification: internal
+        tags: [location]
+  exchange_rates:
+    columns:
+      Date:
+        classification: internal
+        tags: [date]
+      Currency:
+        classification: internal
+        tags: [currency]
+      Exchange:
+        classification: internal
+        tags: [rate]

@@ -1,0 +1,33 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+    batchwait: 1s
+    batchsize: 1048576
+
+scrape_configs:
+  - job_name: airflow_logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: airflow
+          __path__: /var/log/airflow/**/*.log
+    relabel_configs:
+      - source_labels: [__path__]
+        regex: .*/dag_id=([^/]+)/run_id=([^/]+)/task_id=([^/]+)/.*\.log
+        target_label: dag_id
+        replacement: $1
+      - source_labels: [__path__]
+        regex: .*/dag_id=([^/]+)/run_id=([^/]+)/task_id=([^/]+)/.*\.log
+        target_label: run_id
+        replacement: $2
+      - source_labels: [__path__]
+        regex: .*/dag_id=([^/]+)/run_id=([^/]+)/task_id=([^/]+)/.*\.log
+        target_label: task_id
+        replacement: $3

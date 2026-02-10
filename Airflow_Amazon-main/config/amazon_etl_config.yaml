@@ -1,0 +1,228 @@
+# ================================================================================
+# TEAM 1 - AMAZON ETL PIPELINE CONFIGURATION
+# ================================================================================
+# Last Updated: January 14, 2026
+# Purpose: Central configuration for ETL pipeline
+# ================================================================================
+
+# ----------------------------------------
+# Environment Settings
+# ----------------------------------------
+environment: development  # development, staging, production
+
+# ----------------------------------------
+# Project Paths
+# ----------------------------------------
+paths:
+  project_root: "D:/sam/Projects/Infosys/Airflow"
+  data:
+    raw: "data/raw/dataset"
+    staging: "data/staging"
+    processed: "data/processed"
+    reports: "data/reports"
+  config: "config"
+  scripts: "scripts"
+  logs: "logs"
+
+# ----------------------------------------
+# Source Files Configuration
+# ----------------------------------------
+source_files:
+  customers:
+    filename: "Customers.csv"
+    key_column: "CustomerKey"
+    required_columns:
+      - CustomerKey
+      - Name
+  
+  sales:
+    filename: "Sales.csv"
+    key_column: "Order Number"
+    required_columns:
+      - Order Number
+      - CustomerKey
+      - ProductKey
+      - Quantity
+  
+  products:
+    filename: "Products.csv"
+    key_column: "ProductKey"
+    required_columns:
+      - ProductKey
+      - Product Name
+  
+  stores:
+    filename: "Stores.csv"
+    key_column: "StoreKey"
+    required_columns:
+      - StoreKey
+  
+  exchange_rates:
+    filename: "Exchange_Rates.csv"
+    key_column: "Date"
+    required_columns:
+      - Date
+      - Currency
+
+# ----------------------------------------
+# Database Configuration (Docker Airflow PostgreSQL)
+# ----------------------------------------
+database:
+  type: "postgresql"
+  host: "localhost"
+  port: 5432
+  database: "airflow"
+  user: "airflow"
+  password: "airflow"
+  connection_string: "postgresql://airflow:airflow@localhost:5432/airflow"
+  
+  # Target tables
+  tables:
+    customers: "etl_customers"
+    sales: "etl_sales"
+    products: "etl_products"
+    stores: "etl_stores"
+    exchange_rates: "etl_exchange_rates"
+
+# ----------------------------------------
+# Loading Configuration
+# ----------------------------------------
+loading:
+  batch_size: 10000
+  default_mode: "replace"  # replace, append, upsert
+  use_transactions: true
+  rejected_records_dir: "data/processed/rejected"
+
+# ----------------------------------------
+# Transformation Rules
+# ----------------------------------------
+transformations:
+  customers:
+    duplicates:
+      enabled: true
+      subset: ["CustomerKey"]
+      keep: "first"
+    
+    date_columns:
+      Birthday:
+        output_format: "%Y-%m-%d"
+        handle_invalid: "coerce"
+    
+    type_conversions:
+      Age:
+        target_type: "int"
+        fill_missing: "mean"
+    
+    validations:
+      Email:
+        pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        invalid_replacement: "invalid-email@unknown.com"
+        missing_replacement: "no-email@unknown.com"
+  
+  sales:
+    date_columns:
+      - "Order Date"
+      - "Delivery Date"
+    
+    derived_columns:
+      Delivery_Status:
+        rules:
+          delivered: "Delivery Date is not null"
+          delivering_soon: "Days since order <= 30"
+          to_be_shipped: "Days since order 31-365"
+          lost: "Days since order > 365"
+      
+      Total_Amount_USD:
+        formula: "Quantity * Unit Price USD"
+        join_table: "products"
+        join_key: "ProductKey"
+  
+  products:
+    duplicates:
+      enabled: true
+      subset: ["ProductKey"]
+      keep: "first"
+  
+  stores:
+    duplicates:
+      enabled: true
+      subset: ["StoreKey"]
+      keep: "first"
+  
+  exchange_rates:
+    duplicates:
+      enabled: true
+      subset: ["Date", "Currency"]
+      keep: "first"
+    
+    date_columns:
+      Date:
+        output_format: "%Y-%m-%d"
+
+# ----------------------------------------
+# Report Configuration
+# ----------------------------------------
+reports:
+  output_format: "csv"
+  output_dir: "data/reports"
+  
+  enabled_reports:
+    - customer_summary
+    - product_performance
+    - order_status
+    - sales_trends_daily
+    - data_quality_scorecard
+    - customer_segmentation
+    - store_performance
+    - anomaly_detection
+    - dag_execution_summary
+  
+  customer_segmentation:
+    segments:
+      gold:
+        min_spend: 5000
+        min_orders: 10
+      silver:
+        min_spend: 2000
+        min_orders: 5
+      at_risk:
+        max_recency_days: 180
+        min_orders: 5
+      inactive:
+        max_recency_days: 365
+
+# ----------------------------------------
+# Airflow DAG Configuration
+# ----------------------------------------
+airflow:
+  dag_id: "amazon_etl_comprehensive"
+  schedule_interval: "@daily"
+  start_date: "2025-12-25"
+  catchup: false
+  max_active_runs: 1
+  
+  default_args:
+    owner: "team1"
+    retries: 2
+    retry_delay_minutes: 5
+    email_on_failure: false
+    email_on_retry: false
+
+# ----------------------------------------
+# Logging Configuration
+# ----------------------------------------
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/etl_pipeline.log"
+  max_bytes: 10485760  # 10MB
+  backup_count: 5
+
+# ----------------------------------------
+# Quality Thresholds
+# ----------------------------------------
+quality:
+  max_duplicate_pct: 5.0
+  max_null_pct: 10.0
+  min_row_count: 100
+  anomaly_std_threshold: 3
